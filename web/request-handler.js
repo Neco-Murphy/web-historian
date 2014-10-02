@@ -20,21 +20,29 @@ exports.handleRequest = function (req, res) {
       }
     },
     'POST': function(req, res){
-      archive.isUrlInList(req.url,function(trueOrFalse){
-        if(trueOrFalse){
-          archive.isURLArchived(req.url,function(isArchived)
-          {
-            if(isArchived){
-              returnHtml(200,archive.paths.archivedSites + req.url,req,res, 'text/html');
-            }
-        });
+      getData(req,function(data){
+        archive.isUrlInList(data,function(isInList){
+          if(isInList){
+            archive.isURLArchived(data,function(isArchived){
+              if(isArchived){
+                returnHtml(200, archive.paths.archivedSites + '/' +  data,req,res, 'text/html');
+              }else{
+                archive.downloadUrls(data, function(url){
+                  returnHtml(200, archive.paths.archivedSites + '/' +  url,req,res, 'text/html');
+                });
+              }
+            });
+          }else{
+            archive.addUrlToList(data);
+            returnHtml(302,archive.paths.siteAssets + '/loading.html',req,res, 'text/html');
+            archive.downloadUrls(data, function(url){
+               returnHtml(200, archive.paths.archivedSites + '/' +  url,req,res, 'text/html');
+            });
+          }
+      })
 
-        }else{
-          addData(req);
-          //returnHtml(loading)
-          returnHtml(302,archive.paths.siteAssets + '/loading.html',req,res, 'text/html');
-        }
-      };
+      })
+
     },
     'OPTIONS': function(){
 
@@ -49,19 +57,21 @@ var returnHtml = function(status,path, req, res,type){
       res.writeHead(404,httpHelper.headers);
       res.end('Neko.');
     }else{
+      console.log('found file!')
       httpHelper.headers['Content-Type'] = type;
       res.writeHead(status,httpHelper.headers);
       res.end(html);
     }
   });
 };
-
-var addData = function(req){
-  var url = '';
-  req.on('data', function(chunk){
-    url += chunk;
-  });
-  req.on('end', function(){
-    archive.addUrlToList(url);
-  });
+var getData = function(req,callback){
+    var data = '';
+    req.on('data', function(chunk){
+      data += chunk;
+    });
+    req.on('end', function(){
+      data = data.substr(4);
+      callback(data);
+    });
 };
+
