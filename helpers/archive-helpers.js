@@ -14,7 +14,6 @@ exports.paths = {
   'archivedSites' : path.join(__dirname, '../archives/sites'),
   'list' : path.join(__dirname, '../archives/sites.txt')
 };
-
 // Used for stubbing paths for jasmine tests, do not modify
 exports.initialize = function(pathsObj){
   _.each(pathsObj, function(path, type) {
@@ -25,16 +24,37 @@ exports.initialize = function(pathsObj){
 // The following function names are provided to you to suggest how you might
 // modularize your code. Keep it clean!
 
-exports.readListOfUrls = function(){
+exports.readListOfUrls = function(callback){
+  fs.readFile(this.paths.list, function(err, data){
+    if(err){
+      console.log('cannot read list of urls');
+    }
+    callback(data.toString().split('\n'));
+  });
 };
 
-exports.isUrlInList = function(){
+exports.isUrlInList = function(url, callback){
+  this.readListOfUrls(function(urlArray){
+    if(urlArray.indexOf(url) !== -1){
+      callback(true);
+    }else{
+      callback(false);
+    }
+  });
 };
 
-exports.addUrlToList = function(){
+exports.addUrlToList = function(url){
+  fs.appendFile(this.paths.list,url.substr(4) + '\n');
 };
 
-exports.isURLArchived = function(){
+exports.isURLArchived = function(url, callback){
+  fs.readFile(this.paths.archivedSites, function(err){
+    if(err){
+      callback(false);
+    }else{
+      callback(true);
+    }
+  });
 };
 
 exports.downloadUrls = function(){
